@@ -1,0 +1,11 @@
+# Abaikan semua file Excel
+*.xlsx
+*.xls
+*.csv
+
+# Abaikan file Excel sementara (yang ada ~ di depannya)
+~$*.xlsx
+~$*.xls
+~$*.csv
+
+# Tetap sertakan file Python & CSV (tidak perlu aturan khusus karena default-nya tidak di-ignore)

@@ -3,8 +3,30 @@ import pandas as pd
 import plotly.graph_objects as go
 import numpy as np
 from plotly.subplots import make_subplots
+import plotly.express as px
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
+from collections import Counter
+import re
 
-# Konfigurasi halaman
+# Import untuk stopwords bahasa Indonesia
+try:
+    from Sastrawi.StopWordRemover.StopWordRemoverFactory import StopWordRemoverFactory
+    stopword_factory = StopWordRemoverFactory()
+    stopword_remover = stopword_factory.create_stop_word_remover()
+    SASTRAWI_AVAILABLE = True
+except ImportError:
+    SASTRAWI_AVAILABLE = False
+    # Fallback stopwords Indonesia
+    INDONESIAN_STOPWORDS = {
+        'yang', 'untuk', 'pada', 'dalam', 'dengan', 'ini', 'itu', 'dan', 'di', 'ke', 'dari', 
+        'oleh', 'saya', 'akan', 'adalah', 'atau', 'juga', 'dapat', 'karena', 'sebagai',
+        'ada', 'tidak', 'sudah', 'lebih', 'bisa', 'telah', 'harus', 'sebuah', 'sangat',
+        'bps', 'kabupaten', 'kota', 'provinsi', 'lampung',
+        "ada","adalah","adanya","adapun","agak","agaknya","agar","akan","akankah","akhir","akhiri","akhirnya","aku","akulah","amat","amatlah","anda","andalah","antar","antara","antaranya","apa","apaan","apabila","apakah","apalagi","apatah","artinya","asal","asalkan","atas","atau","ataukah","ataupun","awal","awalnya","bagai","bagaikan","bagaimana","bagaimanakah","bagaimanapun","bagi","bagian","bahkan","bahwa","bahwasanya","baik","bakal","bakalan","balik","banyak","bapak","baru","bawah","beberapa","begini","beginian","beginikah","beginilah","begitu","begitukah","begitulah","begitupun","bekerja","belakang","belakangan","belum","belumlah","benar","benarkah","benarlah","berada","berakhir","berakhirlah","berakhirnya","berapa","berapakah","berapalah","berapapun","berarti","berawal","berbagai","berdatangan","beri","berikan","berikut","berikutnya","berjumlah","berkali-kali","berkata","berkehendak","berkeinginan","berkenaan","berlainan","berlalu","berlangsung","berlebihan","bermacam","bermacam-macam","bermaksud","bermula","bersama","bersama-sama","bersiap","bersiap-siap","bertanya","bertanya-tanya","berturut","berturut-turut","bertutur","berujar","berupa","besar","betul","betulkah","biasa","biasanya","bila","bilakah","bisa","bisakah","boleh","bolehkah","bolehlah","buat","bukan","bukankah","bukanlah","bukannya","bulan","bung","cara","caranya","cukup","cukupkah","cukuplah","cuma","dahulu","dalam","dan","dapat","dari","daripada","datang","dekat","demi","demikian","demikianlah","dengan","depan","di","dia","diakhiri","diakhirinya","dialah","diantara","diantaranya","diberi","diberikan","diberikannya","dibuat","dibuatnya","didapat","didatangkan","digunakan","diibaratkan","diibaratkannya","diingat","diingatkan","diinginkan","dijawab","dijelaskan","dijelaskannya","dikarenakan","dikatakan","dikatakannya","dikerjakan","diketahui","diketahuinya","dikira","dilakukan","dilalui","dilihat","dimaksud","dimaksudkan","dimaksudkannya","dimaksudnya","diminta","dimintai","dimisalkan","dimulai","dimulailah","dimulainya","dimungkinkan","dini","dipastikan","diperbuat","diperbuatnya","dipergunakan","diperkirakan","diperlihatkan","diperlukan","diperlukannya","dipersoalkan","dipertanyakan","dipunyai","diri","dirinya","disampaikan","disebut","disebutkan","disebutkannya","disini","disinilah","ditambahkan","ditandaskan","ditanya","ditanyai","ditanyakan","ditegaskan","ditujukan","ditunjuk","ditunjuki","ditunjukkan","ditunjukkannya","ditunjuknya","dituturkan","dituturkannya","diucapkan","diucapkannya","diungkapkan","dong","dua","dulu","empat","enggak","enggaknya","entah","entahlah","guna","gunakan","hal","hampir","hanya","hanyalah","hari","harus","haruslah","harusnya","hendak","hendaklah","hendaknya","hingga","ia","ialah","ibarat","ibaratkan","ibaratnya","ibu","ikut","ingat","ingat-ingat","ingin","inginkah","inginkan","ini","inikah","inilah","itu","itukah","itulah","jadi","jadilah","jadinya","jangan","jangankan","janganlah","jauh","jawab","jawaban","jawabnya","jelas","jelaskan","jelaslah","jelasnya","jika","jikalau","juga","jumlah","jumlahnya","justru","kala","kalau","kalaulah","kalaupun","kalian","kami","kamilah","kamu","kamulah","kan","kapan","kapankah","kapanpun","karena","karenanya","kasus","kata","katakan","katakanlah","katanya","ke","keadaan","kebetulan","kecil","kedua","keduanya","keinginan","kelamaan","kelihatan","kelihatannya","kelima","keluar","kembali","kemudian","kemungkinan","kemungkinannya","kenapa","kepada","kepadanya","kesampaian","keseluruhan","keseluruhannya","keterlaluan","ketika","khususnya","kini","kinilah","kira","kira-kira","kiranya","kita","kitalah","kok","kurang","lagi","lagian","lah","lain","lainnya","lalu","lama","lamanya","lanjut","lanjutnya","lebih","lewat","lima","luar","macam","maka","makanya","makin","malah","malahan","mampu","mampukah","mana","manakala","manalagi","masa","masalah","masalahnya","masih","masihkah","masing","masing-masing","mau","maupun","melainkan","melakukan","melalui","melihat","melihatnya","memang","memastikan","memberi","memberikan","membuat","memerlukan","memihak","meminta","memintakan","memisalkan","memperbuat","mempergunakan","memperkirakan","memperlihatkan","mempersiapkan","mempersoalkan","mempertanyakan","mempunyai","memulai","memungkinkan","menaiki","menambahkan","menandaskan","menanti","menanti-nanti","menantikan","menanya","menanyai","menanyakan","mendapat","mendapatkan","mendatang","mendatangi","mendatangkan","menegaskan","mengakhiri","mengapa","mengatakan","mengatakannya","mengenai","mengerjakan","mengetahui","menggunakan","menghendaki","mengibaratkan","mengibaratkannya","mengingat","mengingatkan","menginginkan","mengira","mengucapkan","mengucapkannya","mengungkapkan","menjadi","menjawab","menjelaskan","menuju","menunjuk","menunjuki","menunjukkan","menunjuknya","menurut","menuturkan","menyampaikan","menyangkut","menyatakan","menyebutkan","menyeluruh","menyiapkan","merasa","mereka","merekalah","merupakan","meski","meskipun","meyakini","meyakinkan","minta","mirip","misal","misalkan","misalnya","mula","mulai","mulailah","mulanya","mungkin","mungkinkah","nah","naik","namun","nanti","nantinya","nyaris","nyatanya","oleh","olehnya","pada","padahal","padanya","pak","paling","panjang","pantas","para","pasti","pastilah","penting","pentingnya","per","percuma","perlu","perlukah","perlunya","pernah","persoalan","pertama","pertama-tama","pertanyaan","pertanyakan","pihak","pihaknya","pukul","pula","pun","punya","rasa","rasanya","rata","rupanya","saat","saatnya","saja","sajalah","saling","sama","sama-sama","sambil","sampai","sampai-sampai","sampaikan","sana","sangat","sangatlah","satu","saya","sayalah","se","sebab","sebabnya","sebagai","sebagaimana","sebagainya","sebagian","sebaik","sebaik-baiknya","sebaiknya","sebaliknya","sebanyak","sebegini","sebegitu","sebelum","sebelumnya","sebenarnya","seberapa","sebesar","sebetulnya","sebisanya","sebuah","sebut","sebutlah","sebutnya","secara","secukupnya","sedang","sedangkan","sedemikian","sedikit","sedikitnya","seenaknya","segala","segalanya","segera","seharusnya","sehingga","seingat","sejak","sejauh","sejenak","sejumlah","sekadar","sekadarnya","sekali","sekali-kali","sekalian","sekaligus","sekalipun","sekarang","sekecil","seketika","sekiranya","sekitar","sekitarnya","sekurang-kurangnya","sekurangnya","sela","selagi","selain","selaku","selalu","selama","selama-lamanya","selamanya","selanjutnya","seluruh","seluruhnya","semacam","semakin","semampu","semampunya","semasa","semasih","semata","semata-mata","semaunya","sementara","semisal","semisalnya","sempat","semua","semuanya","semula","sendiri","sendirian","sendirinya","seolah","seolah-olah","seorang","sepanjang","sepantasnya","sepantasnyalah","seperlunya","seperti","sepertinya","sepihak","sering","seringnya","serta","serupa","sesaat","sesama","sesampai","sesegera","sesekali","seseorang","sesuatu","sesuatunya","sesudah","sesudahnya","setelah","setempat","setengah","seterusnya","setiap","setiba","setibanya","setidak-tidaknya","setidaknya","setinggi","seusai","sewaktu","siap","siapa","siapakah","siapapun","sini","sinilah","soal","soalnya","suatu","sudah","sudahkah","sudahlah","supaya","tadi","tadinya","tahu","tahun","tak","tambah","tambahnya","tampak","tampaknya","tandas","tandasnya","tanpa","tanya","tanyakan","tanyanya","tapi","tegas","tegasnya","telah","tempat","tengah","tentang","tentu","tentulah","tentunya","tepat","terakhir","terasa","terbanyak","terdahulu","terdapat","terdiri","terhadap","terhadapnya","teringat","teringat-ingat","terjadi","terjadilah","terjadinya","terkira","terlalu","terlebih","terlihat","termasuk","ternyata","tersampaikan","tersebut","tersebutlah","tertentu","tertuju","terus","terutama","tetap","tetapi","tiap","tiba","tiba-tiba","tidak","tidakkah","tidaklah","tiga","tinggi","toh","tunjuk","turut","tutur","tuturnya","ucap","ucapnya","ujar","ujarnya","umum","umumnya","ungkap","ungkapnya","untuk","usah","usai","waduh","wah","wahai","waktu","waktunya","walau","walaupun","wong","yaitu","yakin","yakni","yang", 'yuk', 'ayo', 'ayo yuk', 'ayo aja', 'ayo dong', 'ayo yuk dong', 'ayo aja yuk', 'ayo dong yuk', 'ayo dong aja', 'ayo yuk aja', 'ayo yuk dong aja'
+    }
+
+# Konfigurasi halaman (kode CSS dan fungsi lainnya tetap sama)
 st.set_page_config(
     page_title="Aplikasi Pengolahan Data Kompetensi",
     page_icon="📊",
@@ -12,6 +34,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# [Semua fungsi CSS dan helper functions yang sudah ada tetap sama...]
 # Custom CSS untuk styling yang lebih menarik
 def load_css():
     st.markdown("""
@@ -219,6 +242,115 @@ def load_data():
             st.error(f"Error loading data: {e2}")
             return None
 
+@st.cache_data
+def load_pemetaan_data():
+    """Load data pemetaan from Excel file"""
+    try:
+        df = pd.read_excel("pemetaan.xlsx")
+        return df
+    except Exception as e:
+        st.error(f"Error loading pemetaan data: {e}")
+        return None
+
+def clean_text_for_wordcloud(text):
+    """Clean and process text for wordcloud"""
+    if pd.isna(text) or text == '':
+        return ""
+    
+    # Convert to lowercase
+    text = str(text).lower()
+    
+    # Remove special characters and numbers
+    text = re.sub(r'[^a-zA-Z\s]', '', text)
+    
+    # Remove extra whitespace
+    text = ' '.join(text.split())
+    
+    # Remove stopwords
+    if SASTRAWI_AVAILABLE:
+        text = stopword_remover.remove(text)
+    else:
+        words = text.split()
+        text = ' '.join([word for word in words if word not in INDONESIAN_STOPWORDS])
+    
+    return text
+
+def create_wordcloud(text_data, title="WordCloud"):
+    """Create wordcloud from text data"""
+    # Combine all text
+    all_text = ' '.join([clean_text_for_wordcloud(text) for text in text_data if pd.notna(text)])
+    
+    if not all_text.strip():
+        return None
+    
+    # Create wordcloud
+    wordcloud = WordCloud(
+        width=800, 
+        height=400, 
+        background_color='white',
+        colormap='viridis',
+        max_words=100,
+        relative_scaling=0.5
+    ).generate(all_text)
+    
+    # Create matplotlib figure
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.imshow(wordcloud, interpolation='bilinear')
+    ax.axis('off')
+    ax.set_title(title, fontsize=16, fontweight='bold', pad=20)
+    
+    return fig
+
+def create_jalur_jabatan_chart(df_pemetaan):
+    """Create bar chart for jalur jabatan comparison"""
+    # Count jalur jabatan
+    jalur_counts = df_pemetaan['Q01_JALUR PENGEMBANGAN KARIR'].value_counts()
+    
+    # Create bar chart
+    fig = px.bar(
+        x=jalur_counts.index,
+        y=jalur_counts.values,
+        title="Perbandingan Jalur Pengembangan Karir",
+        labels={'x': 'Jalur Jabatan', 'y': 'Jumlah Pegawai'},
+        color=jalur_counts.values,
+        color_continuous_scale='viridis'
+    )
+    
+    fig.update_layout(
+        height=500,
+        showlegend=False,
+        title_x=0.5,
+        font=dict(family="Inter")
+    )
+    
+    return fig
+
+def create_satuan_kerja_chart(df_pemetaan, pilihan_col):
+    """Create bar chart for satuan kerja tujuan"""
+    # Count satuan kerja for selected pilihan
+    satuan_counts = df_pemetaan[pilihan_col].value_counts().head(14)  # Top 14
+    
+    # Create bar chart
+    fig = px.bar(
+        x=satuan_counts.values,
+        y=satuan_counts.index,
+        orientation='h',
+        title=f"Top Satuan Kerja Tujuan - {pilihan_col.split('_')[0]}",
+        labels={'x': 'Jumlah Pegawai', 'y': 'Satuan Kerja'},
+        color=satuan_counts.values,
+        color_continuous_scale='blues'
+    )
+    
+    fig.update_layout(
+        height=600,
+        showlegend=False,
+        title_x=0.5,
+        font=dict(family="Inter")
+    )
+    
+    return fig
+
+# [Semua fungsi yang sudah ada sebelumnya tetap sama...]
 def create_spider_chart(data_row):
     """Create separate stacked spider charts for managerial and technical competencies"""
     
@@ -473,6 +605,7 @@ def main():
     
     # Load data
     df = load_data()
+    df_pemetaan = load_pemetaan_data()
     
     if df is None:
         st.error("🚨 Gagal memuat data. Pastikan file CSV tersedia.")
@@ -505,13 +638,12 @@ def main():
             st.markdown("""
             <div style="text-align: center; padding: 1rem 0; color: white;">
                 <h2 style="color: white; margin-bottom: 0;">🎛️ Panel Kontrol</h2>
-                <p style="opacity: 0.8;">Pilih menu navigasi</p>
             </div>
             """, unsafe_allow_html=True)
             
             menu = st.selectbox(
                 "🔍 Pilih Menu:",
-                ["📋 Tampilkan Tabel", "🔍 Pencarian berdasarkan NIP"],
+                ["📋 Tampilkan Tabel", "🔍 Pencarian berdasarkan NIP", "🗺️ Pemetaan Pegawai"],
                 index=0
             )
         
@@ -911,12 +1043,228 @@ def main():
                         
                         st.markdown("</div>", unsafe_allow_html=True)
 
+        elif menu == "🗺️ Pemetaan Pegawai":
+            if df_pemetaan is None:
+                st.error("🚨 Data pemetaan tidak tersedia. Pastikan file pemetaan.xlsx ada.")
+                return
+                
+            st.markdown("""
+            <div style="text-align: center; padding: 1rem 0;">
+                <h2 style="color: #667eea; font-weight: 600;">🗺️ Pemetaan Pegawai</h2>
+                <p style="color: #666; font-size: 1.1rem;">Analisis pengembangan karir dan satuan kerja tujuan</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Tabs untuk Pengembangan Karir dan Satuan Kerja Tujuan
+            tab1, tab2 = st.tabs(["📈 Pengembangan Karir", "🏢 Satuan Kerja Tujuan"])
+            
+            with tab1:
+                st.markdown("### 📈 Analisis Pengembangan Karir")
+                
+                # Bar chart perbandingan jalur jabatan
+                if 'Q01_JALUR PENGEMBANGAN KARIR' in df_pemetaan.columns:
+                    st.markdown("#### Perbandingan Jalur Pengembangan Karir")
+                    
+                    # Create and display bar chart
+                    jalur_chart = create_jalur_jabatan_chart(df_pemetaan)
+                    st.plotly_chart(jalur_chart, use_container_width=True)
+                    
+                    st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
+                    
+                    # Buttons untuk filter jalur jabatan
+                    st.markdown("#### Analisis Alasan Pemilihan Jalur Jabatan")
+                    
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        if st.button("🏗️ Jalur Jabatan Struktural", use_container_width=True):
+                            st.session_state.jalur_selected = "1 : Jalur Jabatan Struktural"
+                    
+                    with col2:
+                        if st.button("⚙️ Jalur Jabatan Fungsional", use_container_width=True):
+                            st.session_state.jalur_selected = "2 : Jalur Jabatan Fungsional"
+                    
+                    # Display wordcloud berdasarkan pilihan
+                    if hasattr(st.session_state, 'jalur_selected'):
+                        selected_jalur = st.session_state.jalur_selected
+                        
+                        # Filter data berdasarkan jalur yang dipilih
+                        filtered_pemetaan = df_pemetaan[
+                            df_pemetaan['Q01_JALUR PENGEMBANGAN KARIR'] == selected_jalur
+                        ]
+                        
+                        if not filtered_pemetaan.empty and 'Alasan Pilihan Jalur Karir' in df_pemetaan.columns:
+                            st.markdown(f"#### WordCloud Alasan Memilih {selected_jalur}")
+                            
+                            # Get text data for wordcloud
+                            text_data = filtered_pemetaan['Alasan Pilihan Jalur Karir'].dropna().tolist()
+                            
+                            if text_data:
+                                wordcloud_fig = create_wordcloud(
+                                    text_data, 
+                                    f"Alasan Memilih {selected_jalur}"
+                                )
+                                
+                                if wordcloud_fig:
+                                    st.pyplot(wordcloud_fig)
+                                else:
+                                    st.warning("⚠️ Tidak ada teks yang cukup untuk membuat wordcloud")
+                            else:
+                                st.warning("⚠️ Tidak ada data alasan untuk jalur yang dipilih")
+                        else:
+                            st.warning("⚠️ Data tidak tersedia untuk jalur yang dipilih")
+                
+                else:
+                    st.error("❌ Kolom 'Q01_JALUR PENGEMBANGAN KARIR' tidak ditemukan dalam data")
+            
+            with tab2:
+                st.markdown("### 🏢 Analisis Satuan Kerja Tujuan")
+                
+                # Filter untuk memilih pilihan 1, 2, atau 3
+                pilihan_options = {
+                    "Pilihan 1": "Q03_Pilih 3 Satuan Kerja Tujuan",
+                    "Pilihan 2": "Q04_Pilih 3 Satuan Kerja Tujuan", 
+                    "Pilihan 3": "Q05_Pilih 3 Satuan Kerja Tujuan"
+                }
+                
+                selected_pilihan = st.selectbox(
+                    "📊 Pilih Satuan Kerja Tujuan:",
+                    list(pilihan_options.keys())
+                )
+                
+                pilihan_col = pilihan_options[selected_pilihan]
+                
+                if pilihan_col in df_pemetaan.columns:
+                    # Create bar chart untuk satuan kerja tujuan
+                    satuan_chart = create_satuan_kerja_chart(df_pemetaan, pilihan_col)
+                    st.plotly_chart(satuan_chart, use_container_width=True)
+                    
+                    st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
+                    
+                    # WordCloud untuk alasan memilih pilihan 1
+                    if selected_pilihan == "Pilihan 1" and 'Q06_Alasan Pilihan Jalur Karir' in df_pemetaan.columns:
+                        st.markdown("#### Analisis Alasan Memilih Pilihan 1")
+                        
+                        # Filter berdasarkan nilai dari pilihan 1
+                        unique_pilihan1 = df_pemetaan[pilihan_col].dropna().unique()
+                        
+                        if len(unique_pilihan1) > 0:
+                            selected_satuan = st.selectbox(
+                                "🏢 Pilih Satuan Kerja untuk Analisis Alasan:",
+                                unique_pilihan1
+                            )
+                            
+                            # Filter data berdasarkan satuan kerja yang dipilih
+                            filtered_data = df_pemetaan[
+                                df_pemetaan[pilihan_col] == selected_satuan
+                            ]
+                            
+                            if not filtered_data.empty:
+                                # Get text data for wordcloud
+                                text_data = filtered_data['Q06_Alasan Pilihan Jalur Karir'].dropna().tolist()
+                                
+                                if text_data:
+                                    st.markdown(f"#### WordCloud Alasan Memilih: {selected_satuan}")
+                                    
+                                    wordcloud_fig = create_wordcloud(
+                                        text_data,
+                                        f"Alasan Memilih {selected_satuan}"
+                                    )
+                                    
+                                    if wordcloud_fig:
+                                        st.pyplot(wordcloud_fig)
+                                    else:
+                                        st.warning("⚠️ Tidak ada teks yang cukup untuk membuat wordcloud")
+                                else:
+                                    st.warning("⚠️ Tidak ada data alasan untuk satuan kerja yang dipilih")
+                            else:
+                                st.warning("⚠️ Data tidak tersedia untuk satuan kerja yang dipilih")
+                                
+                    elif selected_pilihan == "Pilihan 2" and 'Q06_Alasan Pilihan Jalur Karir' in df_pemetaan.columns:
+                        st.markdown("#### Analisis Alasan Memilih Pilihan 2")
+                        
+                        # Filter berdasarkan nilai dari pilihan 1
+                        unique_pilihan1 = df_pemetaan[pilihan_col].dropna().unique()
+                        
+                        if len(unique_pilihan1) > 0:
+                            selected_satuan = st.selectbox(
+                                "🏢 Pilih Satuan Kerja untuk Analisis Alasan:",
+                                unique_pilihan1
+                            )
+                            
+                            # Filter data berdasarkan satuan kerja yang dipilih
+                            filtered_data = df_pemetaan[
+                                df_pemetaan[pilihan_col] == selected_satuan
+                            ]
+                            
+                            if not filtered_data.empty:
+                                # Get text data for wordcloud
+                                text_data = filtered_data['Q06_Alasan Pilihan Jalur Karir'].dropna().tolist()
+                                
+                                if text_data:
+                                    st.markdown(f"#### WordCloud Alasan Memilih: {selected_satuan}")
+                                    
+                                    wordcloud_fig = create_wordcloud(
+                                        text_data,
+                                        f"Alasan Memilih {selected_satuan}"
+                                    )
+                                    
+                                    if wordcloud_fig:
+                                        st.pyplot(wordcloud_fig)
+                                    else:
+                                        st.warning("⚠️ Tidak ada teks yang cukup untuk membuat wordcloud")
+                                else:
+                                    st.warning("⚠️ Tidak ada data alasan untuk satuan kerja yang dipilih")
+                            else:
+                                st.warning("⚠️ Data tidak tersedia untuk satuan kerja yang dipilih")
+                                
+                    elif selected_pilihan == "Pilihan 3" and 'Q06_Alasan Pilihan Jalur Karir' in df_pemetaan.columns:
+                        st.markdown("#### Analisis Alasan Memilih Pilihan 3")
+                        
+                        # Filter berdasarkan nilai dari pilihan 1
+                        unique_pilihan1 = df_pemetaan[pilihan_col].dropna().unique()
+                        
+                        if len(unique_pilihan1) > 0:
+                            selected_satuan = st.selectbox(
+                                "🏢 Pilih Satuan Kerja untuk Analisis Alasan:",
+                                unique_pilihan1
+                            )
+                            
+                            # Filter data berdasarkan satuan kerja yang dipilih
+                            filtered_data = df_pemetaan[
+                                df_pemetaan[pilihan_col] == selected_satuan
+                            ]
+                            
+                            if not filtered_data.empty:
+                                # Get text data for wordcloud
+                                text_data = filtered_data['Q06_Alasan Pilihan Jalur Karir'].dropna().tolist()
+                                
+                                if text_data:
+                                    st.markdown(f"#### WordCloud Alasan Memilih: {selected_satuan}")
+                                    
+                                    wordcloud_fig = create_wordcloud(
+                                        text_data,
+                                        f"Alasan Memilih {selected_satuan}"
+                                    )
+                                    
+                                    if wordcloud_fig:
+                                        st.pyplot(wordcloud_fig)
+                                    else:
+                                        st.warning("⚠️ Tidak ada teks yang cukup untuk membuat wordcloud")
+                                else:
+                                    st.warning("⚠️ Tidak ada data alasan untuk satuan kerja yang dipilih")
+                            else:
+                                st.warning("⚠️ Data tidak tersedia untuk satuan kerja yang dipilih")
+                                            
+                else:
+                    st.error(f"❌ Kolom '{pilihan_col}' tidak ditemukan dalam data")
+
     # Footer
     st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
     st.markdown("""
     <div style="text-align: center; padding: 2rem 0; color: #666;">
         <p style="margin: 0; font-size: 0.9rem;">
-            © 2024 Aplikasi Pengolahan Data Asesmen Pegawai BPS Lmapung - Dikembangkan dengan ❤️
+            © 2024 Aplikasi Pengolahan Data Asesmen Pegawai BPS Lampung - Dikembangkan dengan ❤️
         </p>
     </div>
     """, unsafe_allow_html=True)
